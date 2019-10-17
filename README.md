@@ -1,0 +1,2 @@
+# HandheldLoRaSurveyAndSniffingKits
+version 2
