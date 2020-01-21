@@ -52,6 +52,7 @@ class MicroWebSrv :
         ".css"   : "text/css",
         ".csv"   : "text/csv",
         ".js"    : "application/javascript",
+        ".js.map": "application/javascript",
         ".xml"   : "application/xml",
         ".xhtml" : "application/xhtml+xml",
         ".json"  : "application/json",

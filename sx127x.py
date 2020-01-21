@@ -1,5 +1,8 @@
 from time import sleep
 import gc
+import binascii
+
+# binary = ""
 
 PA_OUTPUT_RFO_PIN = 0
 PA_OUTPUT_PA_BOOST_PIN = 1
@@ -60,12 +63,11 @@ IRQ_RX_TIME_OUT_MASK = 0x80
 # Buffer size
 MAX_PKT_LENGTH = 255
 
-
 class SX127x:
 
     def __init__(self,
                  name = 'SX127x',
-                 parameters = {'frequency': 433E6, 'tx_power_level': 2, 'signal_bandwidth': 125E3,
+                 parameters = {'frequency': 433, 'tx_power_level': 2, 'signal_bandwidth': 125E3,
                                'spreading_factor': 7, 'coding_rate': 5, 'preamble_length': 8,
                                'implicitHeader': False, 'sync_word': 0x12, 'enable_CRC': False},
                  onReceive = None):
@@ -89,14 +91,15 @@ class SX127x:
             re_try = re_try + 1
             if(version != 0):
                 init_try = False;
-        if version != 0x12:
-            raise Exception('Invalid version.')
+        # if version != 0x12:
+        #     raise Exception('Invalid version.')
 
         # put in LoRa and sleep mode
         self.sleep()
 
         # config
         self.setFrequency(self.parameters['frequency'])
+        print("init frequency =  %d " %(self.parameters['frequency']))
         self.setSignalBandwidth(self.parameters['signal_bandwidth'])
 
         # set LNA boost
@@ -215,13 +218,14 @@ class SX127x:
 
     def setFrequency(self, frequency):
         self._frequency = frequency
+        print("set frequency =  %d " %(self._frequency))
 
-        frfs = {169E6: (42, 64, 0),
-                433E6: (108, 64, 0),
-                434E6: (108, 128, 0),
-                866E6: (216, 128, 0),
-                868E6: (217, 0, 0),
-                915E6: (228, 192, 0)}
+        frfs = {169: (42, 64, 0),
+                433: (108, 64, 0),
+                434: (108, 128, 0),
+                866: (216, 128, 0),
+                868: (217, 0, 0),
+                915: (228, 192, 0)}
 
         self.writeRegister(REG_FRF_MSB, frfs[frequency][0])
         self.writeRegister(REG_FRF_MID, frfs[frequency][1])
@@ -230,6 +234,7 @@ class SX127x:
 
     def setSpreadingFactor(self, sf):
         sf = min(max(sf, 6), 12)
+        print("set Spreading Factor =  %d " %(sf))
         self.writeRegister(REG_DETECTION_OPTIMIZE, 0xc5 if sf == 6 else 0xc3)
         self.writeRegister(REG_DETECTION_THRESHOLD, 0x0c if sf == 6 else 0x0a)
         self.writeRegister(REG_MODEM_CONFIG_2, (self.readRegister(REG_MODEM_CONFIG_2) & 0x0f) | ((sf << 4) & 0xf0))
@@ -237,6 +242,7 @@ class SX127x:
 
     def setSignalBandwidth(self, sbw):
         bins = (7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, 250E3)
+        print("set Bandwidth =  %d " %(sbw))
 
         bw = 9
         for i in range(len(bins)):
@@ -250,6 +256,7 @@ class SX127x:
 
 
     def setCodingRate(self, denominator):
+        print("set Coding Rate =  %d " %(denominator))
         denominator = min(max(denominator, 5), 8)
         cr = denominator - 4
         self.writeRegister(REG_MODEM_CONFIG_1, (self.readRegister(REG_MODEM_CONFIG_1) & 0xf1) | (cr << 1))
@@ -388,13 +395,14 @@ class SX127x:
         payload = bytearray()
         for i in range(packetLength):
             payload.append(self.readRegister(REG_FIFO))
-
         self.collect_garbage()
         return bytes(payload)
+        # return payload
 
 
     def readRegister(self, address, byteorder = 'big', signed = False):
         response = self.transfer(self.pin_ss, address & 0x7f)
+        # print("{0} ".format(binascii.hexlify(response)),end='')
         return int.from_bytes(response, byteorder)
 
 

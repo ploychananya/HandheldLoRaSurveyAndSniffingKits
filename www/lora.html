@@ -12,6 +12,7 @@
 <script>
 if(typeof(EventSource) !== 'undefined') {
     const source = new EventSource('http://' + window.location.hostname + '/lora');
+    console.log(window.location.hostname)
     source.onmessage = function(e) {
         document.getElementById("result").innerHTML += e.data;
     };

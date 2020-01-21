@@ -1,10 +1,27 @@
 
-from ssd1306_i2c import Display
+# from ssd1306_i2c import Display
 import config_lora
+import json
+import gps
 from sx127x import SX127x
 from controller_esp32 import ESP32Controller
 from microWebSrv import MicroWebSrv
+from ssd1306_i2c import Display
+
 # import LoRaReceiver
+
+#---------------gps
+# import machine
+# lineend='\r\n'
+# uart = machine.UART(2, rx=15, tx=12, baudrate=9600, bits=8, parity=None, stop=1, timeout=1500, buffer_size=1024)
+# uart = machine.UART(2, rx=15, tx=12, baudrate=9600, timeout=1500)
+# gps = machine.GPS(uart)
+# float_precision(6)
+# gps.startservice()
+# gps.getdata()
+
+#---------------gps
+
 
 display = Display()
 controller = ESP32Controller()
@@ -18,22 +35,40 @@ def _httpHandlerLoRaGet(httpClient, httpResponse):
     try:
         lora.receivedPacket()
         lora.blink_led()
-        payload, rssi = lora.read_payload(),lora.packetRssi()
-        # display.show_text_wrap("{0} RSSI: {1}".format(payload.decode(), lora.packetRssi()))
-        display.show_text("RSSI: {}\n".format(lora.packetRssi()), 10, 10)
-        data = "RSSI: {0} dBm , Payload: {1} <br>".format(rssi,payload)
-        print("RSSI: {0} , Payload: {1}\n".format(rssi,payload))
-
+        payload, rssi, snr, flag = lora.read_payload(),lora.packetRssi(),lora.packetSnr(),lora.getIrqFlags()
+        print("RSSI: {0} dBm , Payload: {1}, Snr: {2}, flag: {3}".format(rssi,payload,snr,flag))
+        display.show_text("RSSI: {}".format(rssi), 20, 20)
+        data = {"rssi": rssi,"payload": payload, "snr": snr, "flag": flag,"text":"fuck"}
     except:
-        data = 'Invalid reading.<br>'
-
+        data ={"status":"LoRa Invalid reading."}
     httpResponse.WriteResponseOk(
-        headers=({'Cache-Control': 'no-cache'}),
-        contentType= 'text/event-stream',
+        headers=({'Access-Control-Allow-Origin':'*'}),
+        contentType= 'application/json',
         contentCharset= 'UTF-8',
-        content = 'data: {0}\n\n'.format(data) )
+        content = json.dumps(data))
 
-routeHandlers = [('/lora',"GET",_httpHandlerLoRaGet)]
+
+def _httpHandlerGPSGet(httpClient, httpResponse):
+    try:
+        data = gps.gps_working()
+    except:
+        data = {"status":"GPS Invalid reading."}
+    httpResponse.WriteResponseOk(
+        headers=({'Access-Control-Allow-Origin':'*'}),
+        contentType= 'application/json',
+        contentCharset= 'UTF-8',
+        content = json.dumps(data))
+
+def _httpHandlerSetParam(httpClient, httpResponse):
+    data  = httpClient.ReadRequestContentAsJSON()
+    print("data params : \t {0}".format(data))
+    httpResponse.WriteResponseOk(
+        headers=({'Access-Control-Allow-Origin':'*'}),
+        contentType= 'application/json',
+        contentCharset= 'UTF-8',
+        content = data)
+
+routeHandlers = [('/lora',"GET",_httpHandlerLoRaGet),('/gps',"GET",_httpHandlerGPSGet),('/s','POST',_httpHandlerSetParam)]
 srv = MicroWebSrv(routeHandlers=routeHandlers,webPath='/www/')
 srv.WebSocketThreaded		= False
 srv.Start()
