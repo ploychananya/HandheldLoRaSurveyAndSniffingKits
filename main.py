@@ -31,6 +31,8 @@ def _httpHandlerLoRaGet(httpClient, httpResponse):
         # print("RSSI: {0} dBm , Payload: {1}, Snr: {2}, flag: {3}".format(rssi,payload,snr,flag))
         display.show_text("RSSI: {}".format(rssi), 20, 20)
         data = {"rssi": rssi,"payload": payload, "snr": snr, "flag": flag}
+        # lora.beginPacket()
+        lora.endPacket()
         # {"mac_address": payload.mac_Addr,"ip_address":payload.ip_Addr,"payload":payload.data,"rssi": rssi,"snr": snr, "flag": flag}
     except:
         data ={"status":"LoRa Invalid reading."}
@@ -71,7 +73,17 @@ def _httpHandlerSetParam(httpClient, httpResponse, routeArgs):
         contentCharset= 'UTF-8',
         content = json.dumps(data))
 
-routeHandlers = [('/lora',"GET",_httpHandlerLoRaGet),('/gps',"GET",_httpHandlerGPSGet),('/set/<type>/<value>','GET',_httpHandlerSetParam)]
+
+def _httpHandlerGetAllParams(httpClient, httpResponse):
+    data = {"frequency":lora.fre_client,"sf":lora.sf_client,"bw":lora.bw_client,"coding rate":lora.c_rate_client}
+    httpResponse.WriteResponseOk(
+        headers=({'Access-Control-Allow-Origin':'*'}),
+        contentType= 'application/json',
+        contentCharset= 'UTF-8',
+        content = json.dumps(data))
+
+routeHandlers = [('/lora',"GET",_httpHandlerLoRaGet),('/gps',"GET",_httpHandlerGPSGet),('/set/<type>/<value>','GET',_httpHandlerSetParam),
+('/params',"GET",_httpHandlerGetAllParams)]
 srv = MicroWebSrv(routeHandlers=routeHandlers,webPath='/www/')
 srv.WebSocketThreaded		= False
 srv.Start()

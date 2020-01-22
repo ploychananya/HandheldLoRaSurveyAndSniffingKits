@@ -63,6 +63,8 @@ IRQ_RX_TIME_OUT_MASK = 0x80
 # Buffer size
 MAX_PKT_LENGTH = 255
 
+
+
 class SX127x:
 
     def __init__(self,
@@ -73,7 +75,12 @@ class SX127x:
                  onReceive = None):
 
 
-
+        # sending to update at web client
+        self.fre_client = 433
+        self.sf_client = 7
+        self.bw_client= 125E3
+        self.c_rate_client = 5
+        ####################################
         self.name = name
         self.parameters = parameters
         self._onReceive = onReceive
@@ -143,6 +150,7 @@ class SX127x:
         self.writeRegister(REG_OP_MODE, MODE_LONG_RANGE_MODE | MODE_TX)
 
         # wait for TX done, standby automatically on TX_DONE
+
         while (self.readRegister(REG_IRQ_FLAGS) & IRQ_TX_DONE_MASK) == 0:
             pass
 
@@ -217,6 +225,7 @@ class SX127x:
 
 
     def setFrequency(self, frequency):
+        self.fre_client = frequency
         self._frequency = frequency
         print("set frequency =  %d " %(self._frequency))
 
@@ -233,6 +242,7 @@ class SX127x:
 
 
     def setSpreadingFactor(self, sf):
+        self.sf_client = sf
         sf = min(max(sf, 6), 12)
         print("set Spreading Factor =  %d " %(sf))
         self.writeRegister(REG_DETECTION_OPTIMIZE, 0xc5 if sf == 6 else 0xc3)
@@ -241,6 +251,7 @@ class SX127x:
 
 
     def setSignalBandwidth(self, sbw):
+        self.bw_client = sbw
         bins = (7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, 250E3)
         print("set Bandwidth =  %d " %(sbw))
 
@@ -256,6 +267,7 @@ class SX127x:
 
 
     def setCodingRate(self, denominator):
+        self.c_rate_client = denominator
         print("set Coding Rate =  %d " %(denominator))
         denominator = min(max(denominator, 5), 8)
         cr = denominator - 4
@@ -318,7 +330,7 @@ class SX127x:
 
 
     def handleOnReceive(self, event_source):
-        self.aquire_lock(True)              # lock until TX_Done
+        # self.aquire_lock(True)              # lock until TX_Done
         irqFlags = self.getIrqFlags()
 
         if (irqFlags == IRQ_RX_DONE_MASK):  # RX_DONE only, irqFlags should be 0x40
@@ -333,7 +345,7 @@ class SX127x:
             self.writeRegister(REG_FIFO_ADDR_PTR, FifoRxBaseAddr)
             self.writeRegister(REG_OP_MODE, MODE_LONG_RANGE_MODE | MODE_RX_SINGLE)
 
-        self.aquire_lock(False)             # unlock in any case.
+        # self.aquire_lock(False)             # unlock in any case.
         self.collect_garbage()
         return True
 

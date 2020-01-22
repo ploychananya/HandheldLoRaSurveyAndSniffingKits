@@ -39,6 +39,7 @@ def _httpHandlerLoRaGet(httpClient, httpResponse):
         print("RSSI: {0} dBm , Payload: {1}, Snr: {2}, flag: {3}".format(rssi,payload,snr,flag))
         display.show_text("RSSI: {}".format(rssi), 20, 20)
         data = {"rssi": rssi,"payload": payload, "snr": snr, "flag": flag,"text":"fuck"}
+        lora.endPacket()
     except:
         data ={"status":"LoRa Invalid reading."}
     httpResponse.WriteResponseOk(
@@ -53,6 +54,16 @@ def _httpHandlerGPSGet(httpClient, httpResponse):
         data = gps.gps_working()
     except:
         data = {"status":"GPS Invalid reading."}
+    httpResponse.WriteResponseOk(
+        headers=({'Access-Control-Allow-Origin':'*'}),
+        contentType= 'application/json',
+        contentCharset= 'UTF-8',
+        content = json.dumps(data))
+
+
+
+def _httpHandlerGetAllParams(httpClient, httpResponse, routeArgs):
+    data = {"frequency":lora.fre_client,"sf":lora.sf_client,"bw":lora.bw_client,"coding rate":lora.c_rate_client}
     httpResponse.WriteResponseOk(
         headers=({'Access-Control-Allow-Origin':'*'}),
         contentType= 'application/json',
