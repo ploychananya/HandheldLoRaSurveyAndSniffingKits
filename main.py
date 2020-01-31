@@ -29,10 +29,12 @@ def _httpHandlerLoRaGet(httpClient, httpResponse):
         lora.blink_led()
         payload, rssi, snr, flag = lora.read_payload(),lora.packetRssi(),lora.packetSnr(),lora.getIrqFlags()
         # print("RSSI: {0} dBm , Payload: {1}, Snr: {2}, flag: {3}".format(rssi,payload,snr,flag))
-        display.show_text("RSSI: {}".format(rssi), 20, 20)
+        display.show_text("fre: {0} sf: {1} bw: {2} cr: {3}".format(lora.fre_client,lora.sf_client,lora.bw_client,lora.c_rate_client), 5,5 )
+        # display.show_text("RSSI: {}".format(rssi), 20, 20)
         data = {"rssi": rssi,"payload": payload, "snr": snr, "flag": flag}
-        # lora.beginPacket()
-        lora.endPacket()
+        lora.receivedPacket()
+        # lora.endPacket()
+        # gc.collect()
         # {"mac_address": payload.mac_Addr,"ip_address":payload.ip_Addr,"payload":payload.data,"rssi": rssi,"snr": snr, "flag": flag}
     except:
         data ={"status":"LoRa Invalid reading."}
@@ -75,7 +77,7 @@ def _httpHandlerSetParam(httpClient, httpResponse, routeArgs):
 
 
 def _httpHandlerGetAllParams(httpClient, httpResponse):
-    data = {"frequency":lora.fre_client,"sf":lora.sf_client,"bw":lora.bw_client,"coding rate":lora.c_rate_client}
+    data = {"frequency":lora.fre_client,"sf":lora.sf_client,"bw":lora.bw_client,"coding_rate":lora.c_rate_client}
     httpResponse.WriteResponseOk(
         headers=({'Access-Control-Allow-Origin':'*'}),
         contentType= 'application/json',
