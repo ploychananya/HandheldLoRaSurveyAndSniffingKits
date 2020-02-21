@@ -5,9 +5,10 @@ from machine import Pin,I2C
 
 
 class Display:
+                #  width = 128, height = 64,
 
     def __init__(self,
-                 width = 128, height = 64,
+                 width = 64, height = 32,
                  scl_pin_id = 22, sda_pin_id = 21,
                  freq = 400000):
 

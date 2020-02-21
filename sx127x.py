@@ -62,22 +62,25 @@ IRQ_RX_TIME_OUT_MASK = 0x80
 
 # Buffer size
 MAX_PKT_LENGTH = 255
-
+# 255
+ff=434
+_bw=125E3
+_sf=12
+_cr=5
 
 
 class SX127x:
+    # sending to update at web client
 
     def __init__(self,
                  name = 'SX127x',
-                 parameters = {'frequency': 433, 'tx_power_level': 2, 'signal_bandwidth': 125E3,
-                               'spreading_factor': 7, 'coding_rate': 5, 'preamble_length': 8,
-                               'implicitHeader': False, 'sync_word': 0x12, 'enable_CRC': False},
+                 parameters = {'frequency': ff, 'tx_power_level': 2, 'signal_bandwidth': _bw,
+                               'spreading_factor': _sf, 'coding_rate': _cr, 'preamble_length': 8,
+                               'implicitHeader': False, 'sync_word': 0x12, 'enable_CRC': True},
                  onReceive = True):
-
-
         # sending to update at web client
-        self.fre_client = 433
-        self.sf_client = 7
+        self.fre_client = 434
+        self.sf_client = 12
         self.bw_client= 125E3
         self.c_rate_client = 5
         ####################################
@@ -89,7 +92,6 @@ class SX127x:
 
     def init(self, parameters = None):
         if parameters: self.parameters = parameters
-
         init_try = True
         re_try = 0
         # check version
@@ -225,9 +227,13 @@ class SX127x:
 
 
     def setFrequency(self, frequency):
+        global ff
+        ff = frequency
+        self.parameters['frequency'] = frequency
         self.fre_client = frequency
         self._frequency = frequency
-        print("set frequency =  %d " %(self._frequency))
+        
+        # print("set frequency in def =  %d " %(self._frequency))
 
         frfs = {169: (42, 64, 0),
                 433: (108, 64, 0),
@@ -239,39 +245,50 @@ class SX127x:
         self.writeRegister(REG_FRF_MSB, frfs[frequency][0])
         self.writeRegister(REG_FRF_MID, frfs[frequency][1])
         self.writeRegister(REG_FRF_LSB, frfs[frequency][2])
+        # self.init()
 
 
     def setSpreadingFactor(self, sf):
         self.sf_client = sf
+        self.parameters['spreading_factor'] = sf
+        global _sf
+        _sf = sf
         sf = min(max(sf, 6), 12)
-        print("set Spreading Factor =  %d " %(sf))
+        print("set Spreading Factor  in def=  %d " %(sf))
         self.writeRegister(REG_DETECTION_OPTIMIZE, 0xc5 if sf == 6 else 0xc3)
         self.writeRegister(REG_DETECTION_THRESHOLD, 0x0c if sf == 6 else 0x0a)
         self.writeRegister(REG_MODEM_CONFIG_2, (self.readRegister(REG_MODEM_CONFIG_2) & 0x0f) | ((sf << 4) & 0xf0))
+        # self.init()
 
 
     def setSignalBandwidth(self, sbw):
         self.bw_client = sbw
+        self.parameters['signal_bandwidth'] = sbw
+        global _bw 
+        _bw = sbw
         bins = (7.8E3, 10.4E3, 15.6E3, 20.8E3, 31.25E3, 41.7E3, 62.5E3, 125E3, 250E3)
-        print("set Bandwidth =  %d " %(sbw))
+        print("set Bandwidth in def =  %d " %(sbw))
 
-        bw = 9
+        bw = bins.index(sbw)
         for i in range(len(bins)):
             if sbw <= bins[i]:
                 bw = i
                 break
-
         # bw = bins.index(sbw)
-
         self.writeRegister(REG_MODEM_CONFIG_1, (self.readRegister(REG_MODEM_CONFIG_1) & 0x0f) | (bw << 4))
+        # self.init()
 
 
     def setCodingRate(self, denominator):
         self.c_rate_client = denominator
-        print("set Coding Rate =  %d " %(denominator))
+        self.parameters['coding_rate']= denominator
+        global _cr 
+        _cr = denominator
+        print("set Coding Rate in def=  %d " %(denominator))
         denominator = min(max(denominator, 5), 8)
         cr = denominator - 4
         self.writeRegister(REG_MODEM_CONFIG_1, (self.readRegister(REG_MODEM_CONFIG_1) & 0xf1) | (cr << 1))
+        # self.init()
 
 
     def setPreambleLength(self, length):
@@ -380,10 +397,6 @@ class SX127x:
         self.implicitHeaderMode(size > 0)
         if size > 0: self.writeRegister(REG_PAYLOAD_LENGTH, size & 0xff)
 
-        # if (irqFlags & IRQ_RX_DONE_MASK) and \
-           # (irqFlags & IRQ_RX_TIME_OUT_MASK == 0) and \
-           # (irqFlags & IRQ_PAYLOAD_CRC_ERROR_MASK == 0):
-
         if (irqFlags == IRQ_RX_DONE_MASK):  # RX_DONE only, irqFlags should be 0x40
             # automatically standby when RX_DONE
             return True
@@ -403,17 +416,19 @@ class SX127x:
         # read packet length
         packetLength = self.readRegister(REG_PAYLOAD_LENGTH) if self._implicitHeaderMode else \
                        self.readRegister(REG_RX_NB_BYTES)
-
+        
+        # self.collect_garbage()
         payload = bytearray()
         for i in range(packetLength):
             payload.append(self.readRegister(REG_FIFO))
+
         self.collect_garbage()
         return bytes(payload)
-        # return payload
 
 
     def readRegister(self, address, byteorder = 'big', signed = False):
         response = self.transfer(self.pin_ss, address & 0x7f)
+        # print("{0} ".format(response),end='')
         # print("{0} ".format(binascii.hexlify(response)),end='')
         return int.from_bytes(response, byteorder)
 
